@@ -1,21 +1,23 @@
-#include "opencv2/imgproc/imgproc.hpp",
 #include "opencv2/highgui/highgui.hpp"
-#include <iostream>
-#include <time.h> 
-#include <limits.h> 
-#include <stdio.h>
-#include <tchar.h>
-#include <string>
+#include "opencv2/imgproc/imgproc.hpp",
 #include <conio.h>
-#include <thread>
-#include "SerialClass.h"	
-#include "Object.cpp"
-#include "ControlHSV.cpp"
 #include <future>
-#include <iomanip>
+#include <iostream>
+#include <limits.h>
+#include <stdio.h>
+#include <string>
+#include <tchar.h>
+#include <thread>
+
+#include "FPS.h"
+#include "HSV.h"
+#include "Object.cpp"
+#include "SerialClass.h"
 
 using namespace cv;
 using namespace std;
+
+#define MAX_COLORS 10
 
 bool TRACKING = false;
 bool PROCESSED = true;
@@ -32,17 +34,17 @@ VideoCapture cap(1);
 Mat outerLayer;
 Mat src;
 
-ControlHSV colors[10];
+HSV colors[10];
 int countColors = 0;
 
 int source = 0;
 char imageFile[20];
 
-Object objects[20] = { Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src),
-					   Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src)
-					 };
-int countObjects = 0;
+vector<Object> objects = { Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src),
+							Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src), Object(src)
+					     };
 
+int countObjects = 0;
 
 int minId = 0;
 
@@ -152,7 +154,7 @@ void calibrate() {
 			scanf("%s", &name);
 			colors[i].setName(name);
 			printf("\tCalibrating color %s... ", name);
-			colors[i].show();
+			colors[i].showControl();
 
 			bool next = false;
 			Mat thresholded;
@@ -187,7 +189,7 @@ void calibrate() {
 	}
 }
 
-Mat hsvthreshold (Mat original, ControlHSV control) {
+Mat preprocessing (Mat original, HSV control) {
 
 	Mat temp;
 
@@ -203,18 +205,21 @@ Mat hsvthreshold (Mat original, ControlHSV control) {
 	dilate(temp, temp, getStructuringElement(shape, size));
 	erode(temp, temp, getStructuringElement(shape, size));
 
+	GaussianBlur(temp, temp, Size(3, 3), 2, 2);
+	Canny(temp, temp, 60, 180, 3);
+
 	return temp;
 }
 
-vector<Vec3f> findCircles(Mat src) {
+void findCircles(Mat src) {
 
 	vector<Vec3f> circles;
-	//GaussianBlur(src, src, Size(9, 9), 2, 2);
-	//Canny(src, src, 5, 70, 3);
-	HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 80, 80, 10, 0);
-	//HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 80, 100, 10, 0);
+	HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 80, 100, 10, 0);
 
-	return circles;
+	for (size_t j = 0; j < circles.size(); j++) {		
+		//addObject(Point(cvRound(circles[j][0]), cvRound(circles[j][1])), Shape::CIRCLE, color.getName());
+	}
+
 }
 
 static double angle(Point p1, Point p2, Point p0)
@@ -284,10 +289,7 @@ int main(int argc, char** argv) {
 	initialize();
 	calibrate();	
 
-	time_t start, end;
-	int counter = 0;
-	double sec;
-	double fps;
+	FPS fps;
 	
 	bool isInside = false;
 
@@ -304,45 +306,37 @@ int main(int argc, char** argv) {
 	bool showTracking = false;	
 
 	while (true) {
+		
+		fps.start();
 
 		countObjects = 0;
+		int textHeight = img_size.height - 10;
 
 		if (source) { if (!cap.read(src)) { printf("Cannot read a frame from video stream\n"); } }
 		else { src = imread(imageFile); }
 
-		if (counter == 0) { time(&start); }
+		//if (counter == 0) { time(&start); }
 		
-		future<Mat> t_hsvthreshold[10];		
-		for (int i = 0; i < countColors; i++) {	t_hsvthreshold[i] = async(hsvthreshold, src, colors[i]); }
-		for (int i = 0; i < countColors; i++) {	t_hsvthreshold[i].wait(); }
-		for (int i = 0; i < countColors; i++) {	
-			processed[i] = t_hsvthreshold[i].get();
-			imshow("Color - " + to_string(i), processed[i]);
-			
-			GaussianBlur(processed[i], processed[i], Size(3, 3), 2, 2);
-			imshow("Gauss - " + to_string(i), processed[i]);
-
-			Canny(processed[i], processed[i], 60, 180, 3);
-			imshow("Canny - " + to_string(i), processed[i]);
-		}
+		future<Mat> t_preprocessing[10];
+		for (int i = 0; i < countColors; i++) { t_preprocessing[i] = async(preprocessing, src, colors[i]); }
+		for (int i = 0; i < countColors; i++) { t_preprocessing[i].wait(); }
+		for (int i = 0; i < countColors; i++) {	processed[i] = t_preprocessing[i].get(); }
 
 
-		future<vector<Vec3f>> t_circles[10];
-		for (int i = 0; i < countColors; i++) { t_circles[i] = async(findCircles, processed[i]); }
-		for (int i = 0; i < countColors; i++) {	t_circles[i].wait(); }
+		//future<vector<Vec3f>> t_circles[MAX_COLORS];
+		//for (int i = 0; i < countColors; i++) { t_circles[i] = async(findCircles, processed[i]); }
+		//for (int i = 0; i < countColors; i++) {	t_circles[i].wait(); }
 
-		vector<Vec3f> circles[10];
+		vector<Vec3f> circles[MAX_COLORS];
 
-		int textHeight = img_size.height - 10;
 		for (int i = 0; i < countColors; i++) {
 
-			circles[i] = t_circles[i].get();			
+			//circles[i] = t_circles[i].get();			
 			
 			for (size_t j = 0; j < circles[i].size(); j++) {				
 				drawCircle(src, circles[i][j]);				
 				addObject(Point(cvRound(circles[i][j][0]), cvRound(circles[i][j][1])), Shape::CIRCLE, colors[i].getName());
 			}
-			
 			
 
 			vector<vector<Point>> contours;
@@ -362,7 +356,6 @@ int main(int argc, char** argv) {
 					sort(cos.begin(), cos.end());
 
 					if (cos.front() >= -0.3 && cos.back() <= 0.3) {
-					//if (true) {
 						addObject(drawPolygon(src, approx), Shape::RECTANGLE, colors[i].getName());
 					}
 					
@@ -469,23 +462,8 @@ int main(int argc, char** argv) {
 
 		imshow("Processed", fprocessed);*/
 
-		time(&end);
-		counter++;
-		sec = difftime(end, start);
-		fps = counter / sec;
 		
-
-		string s_fps;
-
-		if (counter > 30) {
-			ostringstream out;
-			out << setprecision(3) << fps;
-			s_fps = out.str();
-		}
-		if (counter == (INT_MAX - 1000)) { counter = 0;	}
-
-		
-		putText(src, s_fps, Point(src.size().width - 70, 20), FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(0, 0, 0), 1, CV_AA);
+		putText(src, fps.end(), Point(src.size().width - 70, 20), FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(0, 0, 0), 1, CV_AA);
 		imshow("Original", src);
 		setMouseCallback("Original", MouseCapture, NULL);
 

@@ -1,5 +1,5 @@
-#ifndef SERIALCLASS_H_INCLUDED
-#define SERIALCLASS_H_INCLUDED
+#ifndef SERIALCLASS_H
+#define SERIALCLASS_H
 
 #define ARDUINO_WAIT_TIME 2000
 
@@ -38,4 +38,4 @@ public:
 
 };
 
-#endif // SERIALCLASS_H_INCLUDED
+#endif 

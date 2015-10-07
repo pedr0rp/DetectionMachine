@@ -150,19 +150,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ControlHSV.cpp" />
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="FPS.cpp" />
+    <ClCompile Include="HSV.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Main2.cpp" />
     <ClCompile Include="Arduino.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="Serial.cpp" />
     <ClCompile Include="Teste.cpp" />
-    <ClCompile Include="Thread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="C:\Users\Pedro\Desktop\prato.jpg" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="FPS.h" />
+    <ClInclude Include="HSV.h" />
     <ClInclude Include="SerialClass.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
