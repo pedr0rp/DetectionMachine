@@ -141,17 +141,18 @@ cv::Mat Application::preprocessing(cv::Mat src, HSV color) {
 	return src;
 }
 
-std::vector<Object> Application::findCircles(cv::Mat src, HSV color) {
+std::vector<Circle*> Application::findCircles(cv::Mat src, HSV color) {
 	std::vector<cv::Vec3f> circles;
 	cv::HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 80, 80, 10, 0);
 	
-	std::vector<Object> objects; 
+	std::vector<Circle*> objects;
 
 	for (size_t i = 0; i < circles.size(); i++) {				
-		Object circle;
-		circle.setPosition(cv::Point(cvRound(circles[i][0]), cvRound(circles[i][1])));
-		circle.setShape(Shape::CIRCLE);
-		circle.setColor(color.getName());
+		Circle* circle = new Circle;
+		circle->setPosition(cv::Point(cvRound(circles[i][0]), cvRound(circles[i][1])));
+		circle->setShape(Shape::CIRCLE);
+		circle->setColor(color.getName());
+		circle->setRadius(cvRound(circles[i][2]));
 		objects.push_back(circle);
 	}
 
@@ -167,9 +168,9 @@ static double angle(cv::Point p1, cv::Point p2, cv::Point p0)
 	return (dx1*dx2 + dy1*dy2) / sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
 }
 
-std::vector<Object> Application::findPoly(cv::Mat src, HSV color) {
+std::vector<Poly*> Application::findPoly(cv::Mat src, HSV color) {
 
-	std::vector<Object> objects;
+	std::vector<Poly*> objects;
 	
 	std::vector<std::vector<cv::Point>> contours;
 	cv::findContours(src, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
@@ -181,10 +182,10 @@ std::vector<Object> Application::findPoly(cv::Mat src, HSV color) {
 		approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true)*0.02, true);
 		if (fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx)) continue;
 		
-		if (approx.size() == 3)	{ 
-			Object object;
-			object.setColor(color.getName());
-
+		if (approx.size() == 3)	{
+			Poly* object = new Poly;
+			object->setColor(color.getName());
+			object->setV(approx);
 			int x, y;
 			x = y = 0;
 			for (int i = 0; i < approx.size(); i++) {
@@ -192,8 +193,8 @@ std::vector<Object> Application::findPoly(cv::Mat src, HSV color) {
 				y += approx[i].y;
 
 			}
-			object.setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
-			object.setShape(Shape::TRIANGLE);
+			object->setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
+			object->setShape(Shape::TRIANGLE);
 			objects.push_back(object);
 		}
 		if (approx.size() == 4) {
@@ -205,9 +206,9 @@ std::vector<Object> Application::findPoly(cv::Mat src, HSV color) {
 			sort(cos.begin(), cos.end());
 	
 			if (cos.front() >= -0.3 && cos.back() <= 0.3) {
-				Object object;
-				object.setColor(color.getName());
-
+				Poly* object = new Poly;
+				object->setV(approx);
+				object->setColor(color.getName());
 				int x, y;
 				x = y = 0;
 				for (int i = 0; i < approx.size(); i++) {
@@ -215,8 +216,8 @@ std::vector<Object> Application::findPoly(cv::Mat src, HSV color) {
 					y += approx[i].y;
 
 				}
-				object.setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
-				object.setShape(Shape::RECTANGLE);
+				object->setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
+				object->setShape(Shape::RECTANGLE);
 				objects.push_back(object);
 			}						
 		}	
@@ -227,11 +228,28 @@ std::vector<Object> Application::findPoly(cv::Mat src, HSV color) {
 	return objects;
 }
 
+void Application::drawCircle(cv::Mat &src, Circle* circle) {
+	cv::circle(src, circle->getPosition(), circle->getRadius(), cv::Scalar(0, 0, 255), 3, 8);
+}
 
-void Application::drawObject(cv::Mat &src, Object object) {
+void Application::drawPoly(cv::Mat &src, Poly* poly) {
+	for (int i = 0; i < poly->getV().size(); i++) {
+		line(src, poly->getV()[i], poly->getV()[(i + 1) % poly->getV().size()], cv::Scalar(0, 0, 255), 3, 8);
+	}
+}
+
+void Application::drawObject(cv::Mat &src, Object* object) {
 	
-	cv::circle(src, object.getPosition(), 3, cv::Scalar(0, 255, 0), -1, 8, 0);
-	
+	cv::circle(src, object->getPosition(), 3, cv::Scalar(0, 255, 0), -1, 8, 0);
+	switch (object->getShape()) {
+		case Shape::CIRCLE:
+			drawCircle(src, dynamic_cast<Circle*>(object));
+			break;
+		case Shape::RECTANGLE:
+		case Shape::TRIANGLE:
+			drawPoly(src, dynamic_cast<Poly*>(object));
+			break;
+	}	
 }
 
 cv::Mat Application::readImage() {
@@ -258,12 +276,12 @@ int Application::start() {
 	cv::Mat src;
 	cv::Mat processed[MAX_COLOR];
 
-	int a = 80;
-	int b = 80;
-
 	while (true) {
 		framerate.start();
 		src = readImage();
+
+		cv::Size newSize = cv::Size(320, 240);
+		//cv::resize(src, src, newSize, 0, 0, cv::INTER_LINEAR);
 
 		std::vector<std::future<cv::Mat>> t_preprocessing(MAX_COLOR);
 
@@ -275,18 +293,18 @@ int Application::start() {
 		for (int i = 0; i < colorCount; i++) { t_preprocessing[i].wait(); }
 		for (int i = 0; i < colorCount; i++) { processed[i] = t_preprocessing[i].get(); }
 
-		std::vector<std::future<std::vector<Object>>> t_circles(MAX_COLOR);
+		std::vector<std::future<std::vector<Circle*>>> t_circles(MAX_COLOR);
 		for (int i = 0; i < colorCount; i++) {			
 			cv::Mat temp = processed[i];
 			HSV color = colors[i];
-			t_circles[i] = std::async(std::launch::async, [temp, color, a, b] { return findCircles(temp, color); });
+			t_circles[i] = std::async(std::launch::async, [temp, color] { return findCircles(temp, color); });
 		}
 
 		for (int i = 0; i < colorCount; i++) {
 			t_circles[i].wait();			
 		}
 
-		std::vector<std::future<std::vector<Object>>> t_poly(MAX_COLOR);
+		std::vector<std::future<std::vector<Poly*>>> t_poly(MAX_COLOR);
 		for (int i = 0; i < colorCount; i++) {
 			cv::Mat temp = processed[i];
 			HSV color = colors[i];
@@ -298,10 +316,10 @@ int Application::start() {
 		}
 		
 		for (int i = 0; i < colorCount; i++) { 				
-			std::vector<Object> circles = t_circles[i].get();			
+			std::vector<Circle*> circles = t_circles[i].get();
 			objects.insert(objects.end(), circles.begin(), circles.end());
 
-			std::vector<Object> polys = t_poly[i].get();
+			std::vector<Poly*> polys = t_poly[i].get();
 			objects.insert(objects.end(), polys.begin(), polys.end());
 		}
 

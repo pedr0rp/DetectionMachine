@@ -1,7 +1,5 @@
 #include "Object.h";
 
-//Object::~Object() {}
-
 //Object::Object(cv::Mat src) {
 //	position.x = -1;
 //	position.y = -1;

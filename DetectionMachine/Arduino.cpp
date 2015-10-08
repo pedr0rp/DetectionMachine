@@ -23,7 +23,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	while (SP->IsConnected())
 	{
 		char numberstring[(((sizeof value) * CHAR_BIT) + 2) / 3 + 2];
-		sprintf(numberstring, "%03d", value);
+		//sprintf(numberstring, "%03d", value);
 		
 		printf("Sending %s ->  %d \n", numberstring, SP->WriteData(numberstring, dataLength));
 

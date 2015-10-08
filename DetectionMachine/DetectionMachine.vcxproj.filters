@@ -21,9 +21,6 @@
     <ClCompile Include="Serial.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Main2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Arduino.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -42,7 +39,7 @@
     <ClCompile Include="Main_old.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Test.cpp">
+    <ClCompile Include="Poly.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -68,7 +65,10 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Circle.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Poly.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
