@@ -116,12 +116,16 @@ cv::Mat Application::threshold(cv::Mat src, HSV color) {
 	cv::inRange(thresholded, color.getLow(), color.getHigh(), thresholded);
 
 	int shape = cv::MORPH_ELLIPSE;
-	cv::Size size = cv::Size(3, 3);
+	cv::Size size = cv::Size(5, 5);
 
 	cv::Mat element = cv::getStructuringElement(shape, size);
 
-	cv::morphologyEx(thresholded, thresholded, cv::MORPH_OPEN, element);
-	cv::morphologyEx(thresholded, thresholded, cv::MORPH_CLOSE, element);
+
+	erode(thresholded, thresholded, element);
+	dilate(thresholded, thresholded, element);
+
+	dilate(thresholded, thresholded, element);
+	erode(thresholded, thresholded, element);
 
 	return thresholded;
 
@@ -139,7 +143,7 @@ cv::Mat Application::preprocessing(cv::Mat src, HSV color) {
 
 std::vector<Object> Application::findCircles(cv::Mat src, HSV color) {
 	std::vector<cv::Vec3f> circles;
-	cv::HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 80, 100, 10, 0);
+	cv::HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 80, 80, 10, 0);
 	
 	std::vector<Object> objects; 
 
@@ -176,20 +180,21 @@ std::vector<Object> Application::findPoly(cv::Mat src, HSV color) {
 
 		approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true)*0.02, true);
 		if (fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx)) continue;
-
-		Object object;
-		object.setColor(color.getName());
-
-		int x, y;
-		x = y = 0;
-		for (int i = 0; i < approx.size(); i++) {
-			x += approx[i].x;
-			y += approx[i].y;
-
-		}
-		object.setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
+		
 		if (approx.size() == 3)	{ 
+			Object object;
+			object.setColor(color.getName());
+
+			int x, y;
+			x = y = 0;
+			for (int i = 0; i < approx.size(); i++) {
+				x += approx[i].x;
+				y += approx[i].y;
+
+			}
+			object.setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
 			object.setShape(Shape::TRIANGLE);
+			objects.push_back(object);
 		}
 		if (approx.size() == 4) {
 											
@@ -200,11 +205,23 @@ std::vector<Object> Application::findPoly(cv::Mat src, HSV color) {
 			sort(cos.begin(), cos.end());
 	
 			if (cos.front() >= -0.3 && cos.back() <= 0.3) {
+				Object object;
+				object.setColor(color.getName());
+
+				int x, y;
+				x = y = 0;
+				for (int i = 0; i < approx.size(); i++) {
+					x += approx[i].x;
+					y += approx[i].y;
+
+				}
+				object.setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
 				object.setShape(Shape::RECTANGLE);
+				objects.push_back(object);
 			}						
 		}	
 
-		objects.push_back(object);
+		
 	}
 
 	return objects;
@@ -213,7 +230,8 @@ std::vector<Object> Application::findPoly(cv::Mat src, HSV color) {
 
 void Application::drawObject(cv::Mat &src, Object object) {
 	
-	circle(src, object.getPosition(), 3, cv::Scalar(0, 255, 0), -1, 8, 0);
+	cv::circle(src, object.getPosition(), 3, cv::Scalar(0, 255, 0), -1, 8, 0);
+	
 }
 
 cv::Mat Application::readImage() {
@@ -233,10 +251,6 @@ cv::Mat Application::readImage() {
 	return src;
 }
 
-
-
-
-
 int Application::start() {
 	init();
 	calibrate();
@@ -244,10 +258,13 @@ int Application::start() {
 	cv::Mat src;
 	cv::Mat processed[MAX_COLOR];
 
+	int a = 80;
+	int b = 80;
+
 	while (true) {
 		framerate.start();
 		src = readImage();
-		
+
 		std::vector<std::future<cv::Mat>> t_preprocessing(MAX_COLOR);
 
 		for (int i = 0; i < colorCount; i++) { 
@@ -258,14 +275,16 @@ int Application::start() {
 		for (int i = 0; i < colorCount; i++) { t_preprocessing[i].wait(); }
 		for (int i = 0; i < colorCount; i++) { processed[i] = t_preprocessing[i].get(); }
 
-
 		std::vector<std::future<std::vector<Object>>> t_circles(MAX_COLOR);
 		for (int i = 0; i < colorCount; i++) {			
 			cv::Mat temp = processed[i];
 			HSV color = colors[i];
-			t_circles[i] = std::async(std::launch::async, [temp, color] { return findCircles(temp, color); });
+			t_circles[i] = std::async(std::launch::async, [temp, color, a, b] { return findCircles(temp, color); });
 		}
 
+		for (int i = 0; i < colorCount; i++) {
+			t_circles[i].wait();			
+		}
 
 		std::vector<std::future<std::vector<Object>>> t_poly(MAX_COLOR);
 		for (int i = 0; i < colorCount; i++) {
@@ -275,7 +294,6 @@ int Application::start() {
 		}
 
 		for (int i = 0; i < colorCount; i++) { 
-			t_circles[i].wait(); 
 			t_poly[i].wait(); 
 		}
 		
@@ -294,6 +312,7 @@ int Application::start() {
 
 		putText(src, framerate.end(), cv::Point(src.size().width - 70, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0), 1, CV_AA);		
 		imshow("Source", src);
+		objects.clear();
 
 		switch (cv::waitKey(10)) {			
 			case 27:
