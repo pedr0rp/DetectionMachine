@@ -20,9 +20,7 @@ bool Application::init() {
 	printf("Source: ");
 	scanf("%d", &source);
 
-	if (source) {
-		cv::VideoCapture cap(CAM);
-
+	if (source) {		
 		printf("\tWeb cam");
 		if (cap.isOpened()) {
 			printf(" connected\n");
@@ -30,7 +28,6 @@ bool Application::init() {
 			printf("\t disconnected\n");
 			ready = false;
 		}
-		cap.release();
 	} else {
 		bool fileFound = false;
 		do {
@@ -85,10 +82,8 @@ void Application::calibrate() {
 
 			cv::Mat src;
 			cv::Mat thresholded;			
-			cv::VideoCapture cap(CAM);
 			
 			while (!next) {		
-
 				src = readImage();
 				thresholded = threshold(src, colors[i]);				
 
@@ -99,11 +94,11 @@ void Application::calibrate() {
 				case 27:
 					printf("OK!\n");
 					cv::destroyAllWindows();
+					colors[i].save();
 					next = true;
 					break;
 				}
 			}
-			cap.release();
 		}
 	}
 }
@@ -159,7 +154,7 @@ std::vector<Circle*> Application::findCircles(cv::Mat src, HSV color) {
 	return objects;
 }
 
-static double angle(cv::Point p1, cv::Point p2, cv::Point p0)
+ double Application::angle(cv::Point p1, cv::Point p2, cv::Point p0)
 {
 	double dx1 = p1.x - p0.x;
 	double dy1 = p1.y - p0.y;
@@ -255,18 +250,40 @@ void Application::drawObject(cv::Mat &src, Object* object) {
 cv::Mat Application::readImage() {
 	cv::Mat src;
 
+	cap.isOpened();
 	if (source) { 
-		cv::VideoCapture cap(CAM);
 		if (!cap.read(src)) { 
 			printf("Cannot read a frame from video stream\n"); 
 		}
-		cap.release();
 	}
 	else { 
 		src = cv::imread(imageFile); 
 	}
 
 	return src;
+}
+
+void Application::mouseCapture(int event, int x, int y, int flags, void* param) {
+	Application* ptr = (Application*)param;
+	if (event == cv::EVENT_LBUTTONDOWN) {	
+		float min;
+		for (int i = 0; i < ptr->objects.size(); i++) {
+			float dist = distance(cv::Point(x, y), ptr->objects[i]->getPosition());
+			if (i == 0) { 
+				ptr->index = i;
+				min = dist;  
+			}
+			else if (min > dist) {
+				min = dist;
+				ptr->index = i;
+			}
+		}
+		
+	}
+}
+
+float  Application::distance(cv::Point p0, cv::Point p1)  {
+	 return sqrt((p0.x - p1.x)*(p0.x - p1.x) + (p0.y - p1.y)*(p0.y - p1.y));
 }
 
 int Application::start() {
@@ -276,11 +293,18 @@ int Application::start() {
 	cv::Mat src;
 	cv::Mat processed[MAX_COLOR];
 
+	src = readImage();
+	cv::Size size = src.size();
+	cv::Point center = cv::Point(src.size().width / 2, src.size().height / 2);
+	int radiusAim = 30;	
+
 	while (true) {
 		framerate.start();
-		src = readImage();
+		src = readImage();		
+		int textHeight = src.size().height - 10;
+		objects.clear();
 
-		cv::Size newSize = cv::Size(320, 240);
+		//cv::Size newSize = cv::Size(320, 240);
 		//cv::resize(src, src, newSize, 0, 0, cv::INTER_LINEAR);
 
 		std::vector<std::future<cv::Mat>> t_preprocessing(MAX_COLOR);
@@ -325,12 +349,26 @@ int Application::start() {
 
 		for (int i = 0; i < objects.size(); i++) {
 			drawObject(src, objects[i]);
+
+			std::string temp = "";
+			if (i == index) { temp += " > "; }
+			temp += shapeString[objects[i]->getShape()];
+			temp += " - ";
+			temp += objects[i]->getColor();
+			temp += " - ";
+			temp += "(" + std::to_string(objects[i]->getPosition().x) + "," + std::to_string(objects[i]->getPosition().y) + ")";
+
+			putText(src, temp, cv::Point(10, textHeight), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(0, 0, 0), 1, CV_AA);
+			textHeight = textHeight - 12;
 		}
 
+		putText(src, framerate.end(), cv::Point(src.size().width - 70, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0), 1, CV_AA);	
+		circle(src, center, radiusAim, cv::Scalar(0, 0, 255), 1, 8, 0);
+		line(src, objects[index]->getPosition(), center, cv::Scalar(0, 0, 255), 2, 8);
 
-		putText(src, framerate.end(), cv::Point(src.size().width - 70, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0), 1, CV_AA);		
 		imshow("Source", src);
-		objects.clear();
+		cv::setMouseCallback("Source", mouseCapture, (void *)this);
+		int qtd = objects.size();
 
 		switch (cv::waitKey(10)) {			
 			case 27:

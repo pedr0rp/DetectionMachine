@@ -1,8 +1,8 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/highgui/highgui.hpp"
 #include <fstream>
 #include <future>
 #include <vector>
@@ -27,6 +27,7 @@ private:
 	bool INCLUDE_AIM = false;
 	bool INCLUDE_DISTANCE = true;
 
+	cv::VideoCapture cap = cv::VideoCapture(CAM);
 	FPS framerate;
 	Serial* SP;
 
@@ -36,8 +37,9 @@ private:
 	HSV colors[MAX_COLOR];
 	int colorCount;
 
-	std::vector<Object*> objects;	
-	int objectCount = 0;
+	std::vector<Object*> objects;		
+
+	int index;
 
 public:
 	bool init();
@@ -51,6 +53,9 @@ public:
 	static void drawObject(cv::Mat &src, Object* object);
 	static void drawCircle(cv::Mat &src, Circle* circle);
 	static void drawPoly(cv::Mat &src, Poly* poly);
+	static double angle(cv::Point p1, cv::Point p2, cv::Point p0);
+	static float distance(cv::Point p0, cv::Point p1);
+	static void mouseCapture(int event, int x, int y, int flags, void* userdata);
 };
 
 

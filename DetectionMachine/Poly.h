@@ -9,8 +9,8 @@ private:
 	std::vector<cv::Point> v;
 
 public:
-	void setV(std::vector<cv::Point> value) { v = value; }
-	std::vector<cv::Point> getV() { return v; }
+	void setV(std::vector<cv::Point> value);
+	std::vector<cv::Point> getV();
 };
 
 #endif 

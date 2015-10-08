@@ -9,8 +9,8 @@ private:
 	int radius;
 
 public:
-	void setRadius(int value) { radius = value; }
-	int getRadius() { return radius; }
+	void setRadius(int value);
+	int getRadius();
 };
 
 #endif 
