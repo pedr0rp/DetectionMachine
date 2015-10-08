@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <tchar.h>
-#include "SerialClass.h"	// Library described above
+#include "Serial.h"	
 #include <string>
 
 // application reads from the specified serial port and reports the collected data

@@ -1,4 +1,4 @@
-#include "SerialClass.h"
+#include "Serial.h"
 
 Serial::Serial(char *portName)
 {

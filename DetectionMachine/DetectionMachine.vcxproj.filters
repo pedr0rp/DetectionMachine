@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Object.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -30,9 +27,6 @@
     <ClCompile Include="Arduino.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Teste.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="HSV.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -42,6 +36,15 @@
     <ClCompile Include="FPS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Main_old.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="C:\Users\Pedro\Desktop\prato.jpg">
@@ -49,9 +52,6 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SerialClass.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -60,6 +60,15 @@
     </ClInclude>
     <ClInclude Include="FPS.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Serial.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Circle.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,74 +1,34 @@
-#include "opencv2/imgproc/imgproc.hpp",
-#include "opencv2/highgui/highgui.hpp"
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <string>
+#include "Object.h";
 
-using namespace cv;
-using namespace std;
+//Object::~Object() {}
 
-enum Shape { CIRCLE = 0, RECTANGLE = 1, TRIANGLE = 2};
-static const char * ShapeString[] = { "Circle", "Rectangle", "Triangle" };
+//Object::Object(cv::Mat src) {
+//	position.x = -1;
+//	position.y = -1;
+//	lastPosition = position;
+//	tracking = cv::Mat::zeros(src.size(), CV_8UC3);
+//}
 
-class Object {
-	private:		
-		Point lastPosition;
-		Point position; 		
-		String name;
-		Mat tracking;
-		Shape shape;
-		String color;
-	public:
-		
-		Object(Mat src) {
-			position.x = -1; 
-			position.y = -1;
-			lastPosition = position;
-			tracking = Mat::zeros(src.size(), CV_8UC3);
-		}
+void Object::setName(std::string value) { name = value; }
+std::string Object::getName() { return name; }
 
-		void setName(String value) {
-			name = value;
-		}
+void Object::setPosition(cv::Point value) {
 
-		String getName() {
-			return name;
-		}
+	if (lastPosition.x != -1 && lastPosition.y != -1) {
+		line(tracking, lastPosition, value, cv::Scalar(0, 0, 255), 2, 8);
+	}
 
-		void setPosition(Point value) {
+	lastPosition = position;
+	position = value;
+}
 
-			if (lastPosition.x != -1 && lastPosition.y != -1) {
-				line(tracking, lastPosition, value, Scalar(0, 0, 255), 2, 8);
-			}
-			
-			lastPosition = position;
-			position = value;
-		}
+cv::Point Object::getPosition() { return position; }
 
-		Point getPosition() {
-			return position;
-		}
+cv::Mat Object::getTracking() { return tracking; }
 
-		Mat getTracking() {
-			return tracking;
-		}
+void Object::setShape(Shape value) { shape = value; }
+Shape Object::getShape() { return shape; }
 
-		void setShape(Shape value) {
-			shape = value;
-		}
-
-		Shape getShape() {
-			return shape;
-		}
-
-		void setColor(string value) {
-			color = value;
-		}
-
-		String getColor() {
-			return color;
-		}
-
-};
+void Object::setColor(std::string value) { color = value; }
+std::string Object::getColor() { return color; }
 
