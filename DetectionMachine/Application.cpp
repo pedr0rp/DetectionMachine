@@ -4,18 +4,19 @@ bool Application::init() {
 
 	bool ready = true;
 
-	SP = new Serial("COM3");
-
 	printf("Arduino");
-	if (SP->IsConnected()) {
+	if (arduino.isConnected()) {
 		printf(" connected");
-		//move_cam(90, 90);
 	} else {
 		printf(" disconnected");
 		ready = false;
 	}
 	
 	printf("\n\n");
+
+
+	printf("Time: ");
+	scanf("%d", &time);
 
 	printf("Source: ");
 	scanf("%d", &source);
@@ -110,17 +111,13 @@ cv::Mat Application::threshold(cv::Mat src, HSV color) {
 	cv::cvtColor(src, thresholded, cv::COLOR_BGR2HSV);
 	cv::inRange(thresholded, color.getLow(), color.getHigh(), thresholded);
 
-	int shape = cv::MORPH_ELLIPSE;
-	cv::Size size = cv::Size(5, 5);
+	cv::Mat element = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
 
-	cv::Mat element = cv::getStructuringElement(shape, size);
+	cv::erode(thresholded, thresholded, element);
+	cv::dilate(thresholded, thresholded, element);
 
-
-	erode(thresholded, thresholded, element);
-	dilate(thresholded, thresholded, element);
-
-	dilate(thresholded, thresholded, element);
-	erode(thresholded, thresholded, element);
+	cv::dilate(thresholded, thresholded, element);
+	cv::erode(thresholded, thresholded, element);
 
 	return thresholded;
 
@@ -186,7 +183,6 @@ std::vector<Poly*> Application::findPoly(cv::Mat src, HSV color) {
 			for (int i = 0; i < approx.size(); i++) {
 				x += approx[i].x;
 				y += approx[i].y;
-
 			}
 			object->setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
 			object->setShape(Shape::TRIANGLE);
@@ -209,10 +205,10 @@ std::vector<Poly*> Application::findPoly(cv::Mat src, HSV color) {
 				for (int i = 0; i < approx.size(); i++) {
 					x += approx[i].x;
 					y += approx[i].y;
-
 				}
 				object->setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
 				object->setShape(Shape::RECTANGLE);
+
 				objects.push_back(object);
 			}						
 		}	
@@ -255,8 +251,7 @@ cv::Mat Application::readImage() {
 		if (!cap.read(src)) { 
 			printf("Cannot read a frame from video stream\n"); 
 		}
-	}
-	else { 
+	} else { 
 		src = cv::imread(imageFile); 
 	}
 
@@ -272,8 +267,7 @@ void Application::mouseCapture(int event, int x, int y, int flags, void* param) 
 			if (i == 0) { 
 				ptr->index = i;
 				min = dist;  
-			}
-			else if (min > dist) {
+			} else if (min > dist) {
 				min = dist;
 				ptr->index = i;
 			}
@@ -290,15 +284,26 @@ int Application::start() {
 	init();
 	calibrate();
 
+
+
+	if (time != -1) {
+		std::time(&_start);
+	}
+	
 	cv::Mat src;
 	cv::Mat processed[MAX_COLOR];
 
 	src = readImage();
 	cv::Size size = src.size();
 	cv::Point center = cv::Point(src.size().width / 2, src.size().height / 2);
-	int radiusAim = 30;	
+	int radiusAim = 60;	
+	bool inside;	
 
-	while (true) {
+	bool flag = true;
+
+
+	
+	while (flag) {
 		framerate.start();
 		src = readImage();		
 		int textHeight = src.size().height - 10;
@@ -347,6 +352,19 @@ int Application::start() {
 			objects.insert(objects.end(), polys.begin(), polys.end());
 		}
 
+		if (objects.size()>0) {
+			inside = pow(objects[index]->getPosition().x - center.x, 2) + pow(objects[index]->getPosition().y - center.y, 2) <= pow(radiusAim, 2);
+			if (!inside) {
+				int x, y;
+
+				if (objects[index]->getPosition().y > center.y + radiusAim) { arduino.down(); }
+				if (objects[index]->getPosition().y < center.y - radiusAim) { arduino.up(); }
+				if (objects[index]->getPosition().x > center.x + radiusAim) { arduino.left(); }
+				if (objects[index]->getPosition().x < center.x - radiusAim) { arduino.right(); }
+			}
+			line(src, objects[index]->getPosition(), center, cv::Scalar(0, 0, 255), 2, 8);
+		}
+
 		for (int i = 0; i < objects.size(); i++) {
 			drawObject(src, objects[i]);
 
@@ -364,7 +382,7 @@ int Application::start() {
 
 		putText(src, framerate.end(), cv::Point(src.size().width - 70, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0), 1, CV_AA);	
 		circle(src, center, radiusAim, cv::Scalar(0, 0, 255), 1, 8, 0);
-		line(src, objects[index]->getPosition(), center, cv::Scalar(0, 0, 255), 2, 8);
+		
 
 		imshow("Source", src);
 		cv::setMouseCallback("Source", mouseCapture, (void *)this);
@@ -376,6 +394,10 @@ int Application::start() {
 				for (int i = 0; i < colorCount; i++) { colors[i].save(); }
 			return 0;
 		}
+
+		if (time != 0) {
+			flag = std::difftime(std::time(0), _start) < time; 
+		}		
 	}
 
 	return 0;

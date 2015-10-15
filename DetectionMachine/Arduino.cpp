@@ -1,45 +1,44 @@
-#include <stdio.h>
-#include <tchar.h>
-#include "Serial.h"	
-#include <string>
+#include "Arduino.h"
 
-// application reads from the specified serial port and reports the collected data
-int _tmain(int argc, _TCHAR* argv[])
-{
 
-	Serial* SP = new Serial("COM3");    // adjust as needed
+Arduino::Arduino() {
+	SP = new Serial("COM3");
+	send(90, 90);
+}
 
-	if (SP->IsConnected())
-		printf("Connected\n");
+bool Arduino::isConnected() {
+	return SP->IsConnected();
+}
 
-	char incomingData[256] = "";			// don't forget to pre-allocate memory
-	//printf("%s\n",incomingData);
-	int dataLength = 3;
-	int readResult = 0;
+void Arduino::send(int x, int y) {
 
-	int value = 0;
-
-	//while (false)
-	while (SP->IsConnected())
-	{
-		char numberstring[(((sizeof value) * CHAR_BIT) + 2) / 3 + 2];
-		//sprintf(numberstring, "%03d", value);
-		
-		printf("Sending %s ->  %d \n", numberstring, SP->WriteData(numberstring, dataLength));
-
-		
-		if (value <= 170) {
-			value+=10;
-		}
-		else {
-			value = 0;
-		}
-
-		Sleep(200);
-		system("Pause");
-
-		
+	if (x >= MIN_X && x <= MAX_X) { 
+		Arduino::x = x; 
 	}
-	system("Pause");
-	return 0;
+	if (y + 180 >= MIN_Y && y + 180 <= MAX_Y) {
+		Arduino::y = y; 
+	}
+
+		sprintf(numberstring, "%03d", Arduino::x);
+	SP->WriteData(numberstring, DATA_LENGHT);
+
+	sprintf(numberstring, "%03d", Arduino::y+181);
+	SP->WriteData(numberstring, DATA_LENGHT);
+
+}
+
+void Arduino::up() {
+	send(x, y - step);	
+}
+
+void Arduino::down() {
+	send(x, y + step);
+}
+
+void Arduino::left() {
+	send(x - step, y);
+}
+
+void Arduino::right() {
+	send(x + step, y);		
 }

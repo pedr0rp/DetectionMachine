@@ -6,6 +6,9 @@
 #include <fstream>
 #include <future>
 #include <vector>
+#include <time.h>
+#include <iomanip>
+#include "Arduino.h"
 #include "Serial.h"
 #include "FPS.h"
 #include "HSV.h""
@@ -29,7 +32,10 @@ private:
 
 	cv::VideoCapture cap = cv::VideoCapture(CAM);
 	FPS framerate;
-	Serial* SP;
+	Arduino arduino;
+
+	time_t _start;
+	int time;
 
 	int source;
 	char imageFile[20];
