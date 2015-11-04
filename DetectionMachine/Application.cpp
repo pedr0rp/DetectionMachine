@@ -1,5 +1,7 @@
 #include "Application.h"
 
+const float Application::resizeRatio = 1;
+
 bool Application::init() {
 
 	bool ready = true;
@@ -27,6 +29,7 @@ bool Application::init() {
 			printf(" connected\n");
 		} else {
 			printf("\t disconnected\n");
+			return 0;
 			ready = false;
 		}
 	} else {
@@ -111,7 +114,9 @@ cv::Mat Application::threshold(cv::Mat src, HSV color) {
 	cv::cvtColor(src, thresholded, cv::COLOR_BGR2HSV);
 	cv::inRange(thresholded, color.getLow(), color.getHigh(), thresholded);
 
-	cv::Mat element = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
+	int n = 3;
+	n = n*resizeRatio;
+	cv::Mat element = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(n, n));
 
 	cv::erode(thresholded, thresholded, element);
 	cv::dilate(thresholded, thresholded, element);
@@ -127,7 +132,9 @@ cv::Mat Application::preprocessing(cv::Mat src, HSV color) {
 
 	src = threshold(src, color);	
 
-	cv::GaussianBlur(src, src, cv::Size(3, 3), 2, 2);
+	int n = 3;
+	n = n*resizeRatio;
+	cv::GaussianBlur(src, src, cv::Size(n, n), 2, 2);
 	cv::Canny(src, src, 60, 180, 3);
 
 	return src;
@@ -141,10 +148,10 @@ std::vector<Circle*> Application::findCircles(cv::Mat src, HSV color) {
 
 	for (size_t i = 0; i < circles.size(); i++) {				
 		Circle* circle = new Circle;
-		circle->setPosition(cv::Point(cvRound(circles[i][0]), cvRound(circles[i][1])));
+		circle->setPosition(cv::Point(cvRound(circles[i][0]*(1/resizeRatio)), cvRound(circles[i][1]*(1/resizeRatio))));
 		circle->setShape(Shape::CIRCLE);
 		circle->setColor(color.getName());
-		circle->setRadius(cvRound(circles[i][2]));
+		circle->setRadius(cvRound(circles[i][2])*(1/resizeRatio));
 		objects.push_back(circle);
 	}
 
@@ -171,19 +178,21 @@ std::vector<Poly*> Application::findPoly(cv::Mat src, HSV color) {
 	
 	for (int i = 0; i < contours.size(); i++) {
 
-		approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true)*0.02, true);
+		cv::approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true)*0.02, true);
 		if (fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx)) continue;
 		
 		if (approx.size() == 3)	{
 			Poly* object = new Poly;
 			object->setColor(color.getName());
-			object->setV(approx);
 			int x, y;
 			x = y = 0;
 			for (int i = 0; i < approx.size(); i++) {
+				approx[i].x = approx[i].x*(1 / resizeRatio);
+				approx[i].y = approx[i].y*(1 / resizeRatio);
 				x += approx[i].x;
 				y += approx[i].y;
 			}
+			object->setV(approx);
 			object->setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
 			object->setShape(Shape::TRIANGLE);
 			objects.push_back(object);
@@ -198,22 +207,22 @@ std::vector<Poly*> Application::findPoly(cv::Mat src, HSV color) {
 	
 			if (cos.front() >= -0.3 && cos.back() <= 0.3) {
 				Poly* object = new Poly;
-				object->setV(approx);
 				object->setColor(color.getName());
 				int x, y;
 				x = y = 0;
 				for (int i = 0; i < approx.size(); i++) {
+					approx[i].x = approx[i].x*(1 / resizeRatio);
+					approx[i].y = approx[i].y*(1 / resizeRatio);
 					x += approx[i].x;
 					y += approx[i].y;
 				}
+				object->setV(approx);
 				object->setPosition(cv::Point(cvRound(x / approx.size()), cvRound(y / approx.size())));
 				object->setShape(Shape::RECTANGLE);
 
 				objects.push_back(object);
 			}						
 		}	
-
-		
 	}
 
 	return objects;
@@ -276,51 +285,61 @@ void Application::mouseCapture(int event, int x, int y, int flags, void* param) 
 	}
 }
 
-float  Application::distance(cv::Point p0, cv::Point p1)  {
+float Application::distance(cv::Point p0, cv::Point p1)  {
 	 return sqrt((p0.x - p1.x)*(p0.x - p1.x) + (p0.y - p1.y)*(p0.y - p1.y));
+}
+
+cv::Mat Application::resize(cv::Mat src) {
+	cv::Size newSize = cv::Size(src.cols*resizeRatio, src.rows*resizeRatio);
+	cv::resize(src, src, newSize, 0, 0, cv::INTER_LINEAR);
+	return src;
 }
 
 int Application::start() {
 	init();
 	calibrate();
 
-
-
 	if (time != -1) {
 		std::time(&_start);
 	}
-	
-	cv::Mat src;
+
+	cv::Mat original;
+	cv::Mat resized;
 	cv::Mat processed[MAX_COLOR];
 
-	src = readImage();
-	cv::Size size = src.size();
-	cv::Point center = cv::Point(src.size().width / 2, src.size().height / 2);
+	original = readImage();
+	resized = resize(original);
+
+	cv::Size size = resized.size();
+	cv::Point center = cv::Point(original.size().width / 2, original.size().height / 2);
 	int radiusAim = 60;	
 	bool inside;	
 
-	bool flag = true;
+	bool flag = true;	
 
-
-	
 	while (flag) {
 		framerate.start();
-		src = readImage();		
-		int textHeight = src.size().height - 10;
-		objects.clear();
+		original = readImage();		
+		int textHeight = original.size().height - 10;
 
-		//cv::Size newSize = cv::Size(320, 240);
-		//cv::resize(src, src, newSize, 0, 0, cv::INTER_LINEAR);
+		resized = resize(original);		
+		objects.clear();	
 
 		std::vector<std::future<cv::Mat>> t_preprocessing(MAX_COLOR);
 
 		for (int i = 0; i < colorCount; i++) { 
 			HSV color = colors[i];
-			t_preprocessing[i] = std::async(std::launch::async, [src, color] { return preprocessing(src, color); });
+			t_preprocessing[i] = std::async(std::launch::async, [resized, color] { return preprocessing(resized, color); });
 		}
 		
 		for (int i = 0; i < colorCount; i++) { t_preprocessing[i].wait(); }
 		for (int i = 0; i < colorCount; i++) { processed[i] = t_preprocessing[i].get(); }
+		
+		if (SHOW_PROCESSED) {
+			for (int i = 0; i < colorCount; i++) {
+				imshow("Color "+std::to_string(i)+" processed", processed[i]);
+			}
+		}
 
 		std::vector<std::future<std::vector<Circle*>>> t_circles(MAX_COLOR);
 		for (int i = 0; i < colorCount; i++) {			
@@ -352,7 +371,7 @@ int Application::start() {
 			objects.insert(objects.end(), polys.begin(), polys.end());
 		}
 
-		if (objects.size()>0) {
+		if (TRACKING && objects.size()>0) {
 			inside = pow(objects[index]->getPosition().x - center.x, 2) + pow(objects[index]->getPosition().y - center.y, 2) <= pow(radiusAim, 2);
 			if (!inside) {
 				int x, y;
@@ -362,11 +381,11 @@ int Application::start() {
 				if (objects[index]->getPosition().x > center.x + radiusAim) { arduino.left(); }
 				if (objects[index]->getPosition().x < center.x - radiusAim) { arduino.right(); }
 			}
-			line(src, objects[index]->getPosition(), center, cv::Scalar(0, 0, 255), 2, 8);
+			line(original, objects[index]->getPosition(), center, cv::Scalar(0, 0, 255), 2, 8);
 		}
 
 		for (int i = 0; i < objects.size(); i++) {
-			drawObject(src, objects[i]);
+			drawObject(original, objects[i]);
 
 			std::string temp = "";
 			if (i == index) { temp += " > "; }
@@ -376,15 +395,16 @@ int Application::start() {
 			temp += " - ";
 			temp += "(" + std::to_string(objects[i]->getPosition().x) + "," + std::to_string(objects[i]->getPosition().y) + ")";
 
-			putText(src, temp, cv::Point(10, textHeight), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(0, 0, 0), 1, CV_AA);
+			putText(original, temp, cv::Point(10, textHeight), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(0, 0, 0), 1, CV_AA);
 			textHeight = textHeight - 12;
 		}
 
-		putText(src, framerate.end(), cv::Point(src.size().width - 70, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0), 1, CV_AA);	
-		circle(src, center, radiusAim, cv::Scalar(0, 0, 255), 1, 8, 0);
-		
+		putText(original, framerate.end(), cv::Point(original.size().width - 70, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(0, 0, 0), 1, CV_AA);	
+		if (INCLUDE_AIM) {
+			circle(original, center, radiusAim, cv::Scalar(0, 0, 255), 1, 8, 0);
+		}
 
-		imshow("Source", src);
+		imshow("Source", original);
 		cv::setMouseCallback("Source", mouseCapture, (void *)this);
 		int qtd = objects.size();
 

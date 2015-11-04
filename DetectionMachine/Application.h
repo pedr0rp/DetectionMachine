@@ -25,7 +25,7 @@ class Application {
 
 private:
 	bool TRACKING = false;
-	bool SHOW_PROCESSED = true;
+	bool SHOW_PROCESSED = false;
 	bool INCLUDE_TEXT = true;
 	bool INCLUDE_AIM = false;
 	bool INCLUDE_DISTANCE = true;
@@ -46,6 +46,7 @@ private:
 	std::vector<Object*> objects;		
 
 	int index;
+	static const float Application::resizeRatio;
 
 public:
 	bool init();
@@ -61,7 +62,9 @@ public:
 	static void drawPoly(cv::Mat &src, Poly* poly);
 	static double angle(cv::Point p1, cv::Point p2, cv::Point p0);
 	static float distance(cv::Point p0, cv::Point p1);
+	static cv::Mat Application::resize(cv::Mat src);
 	static void mouseCapture(int event, int x, int y, int flags, void* userdata);
+
 };
 
 
