@@ -4,8 +4,8 @@
 #include "opencv2/imgproc/imgproc.hpp",
 #include "opencv2/highgui/highgui.hpp"
 
-enum Shape { CIRCLE = 0, RECTANGLE = 1, TRIANGLE = 2 };
-static const char *shapeString[] = { "CIRCLE", "RECTANGLE", "TRIANGLE" };
+enum Shape { CIRCLE = 0, RECTANGLE = 1, TRIANGLE = 2, OTHER = 3 };
+static const char *shapeString[] = { "CIRCLE", "RECTANGLE", "TRIANGLE", "OTHER" };
 
 class Object {
 
