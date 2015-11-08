@@ -25,7 +25,7 @@ class Application {
 
 private:
 	bool TRACKING = false;
-	bool SHOW_PROCESSED = false;
+	bool SHOW_PROCESSED = true;
 	bool INCLUDE_TEXT = true;
 	bool INCLUDE_AIM = false;
 	bool INCLUDE_DISTANCE = true;
@@ -41,6 +41,7 @@ private:
 	char imageFile[20];
 
 	HSV colors[MAX_COLOR];
+	std::vector<cv::Point> cropRef;
 	int colorCount;
 
 	std::vector<Object*> objects;		
@@ -63,7 +64,7 @@ public:
 	static double angle(cv::Point p1, cv::Point p2, cv::Point p0);
 	static float distance(cv::Point p0, cv::Point p1);
 	static std::vector<cv::Point> removeNear(std::vector<cv::Point> src);
-	static cv::Mat Application::resize(cv::Mat src);
+	static cv::Mat resize(cv::Mat src);
 	static void mouseCapture(int event, int x, int y, int flags, void* userdata);
 
 };

@@ -4,45 +4,36 @@
 using namespace cv;
 using namespace std;
 
-int m1n(int argc, char* argv[])
+int counta(Mat src)  {
+	int i = 0;
+	int j = 0;
+
+	int count = 0;
+	while (i < src.rows) {
+		while (j < src.cols) {
+			if (src.at<uchar>(i, j) == 255) {
+				count++;
+			}
+			j++;
+		}
+		i++;
+	}
+	return count;
+}
+
+int maazin(int argc, char* argv[])
 {
-	VideoCapture cap(1); 
+	cv::Mat img = cv::imread("a.png", 0);
 
-	if (!cap.isOpened()) 
-	{
-		cout << "Cannot open the video cam" << endl;
-		return -1;
-	}
 
-	double dWidth = cap.get(CV_CAP_PROP_FRAME_WIDTH); 
-	double dHeight = cap.get(CV_CAP_PROP_FRAME_HEIGHT); 
 
-	cout << "Frame size : " << dWidth << " x " << dHeight << endl;
+	printf("testeeeeeeeeeeee\n");
+	int i = 0;
+	int j = 0;
+	bool flag = false;
 
-	namedWindow("MyVideo", CV_WINDOW_AUTOSIZE); //create a window called "MyVideo"
+	printf("%d", counta(img));
 
-	while (1)
-	{
-		Mat frame;
-		double t = (double)cv::getTickCount();
-		bool bSuccess = cap.read(frame);
-
-		if (!bSuccess)
-		{
-			cout << "Cannot read a frame from video stream" << endl;
-			break;
-		}
-
-		imshow("MyVideo", frame); 
-		t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();// elapsed time in ms
-		std::cout << "I am working at " << 1000.0 / t << " FPS" << std::endl;
-
-		if (waitKey(30) == 27) 
-		{
-			cout << "esc key is pressed by user" << endl;
-			break;
-		}
-	}
 	return 0;
 
 }

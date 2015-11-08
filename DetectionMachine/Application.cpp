@@ -1,6 +1,6 @@
 #include "Application.h"
 
-const float Application::resizeRatio = 0.5;
+const float Application::resizeRatio = 1;
 
 bool Application::init() {
 
@@ -110,9 +110,7 @@ void Application::calibrate() {
 cv::Mat Application::threshold(cv::Mat src, HSV color) {
 
 	cv::Mat thresholded;
-
-	cv::cvtColor(src, thresholded, cv::COLOR_BGR2HSV);
-	cv::inRange(thresholded, color.getLow(), color.getHigh(), thresholded);
+	cv::inRange(src, color.getLow(), color.getHigh(), thresholded);
 
 	int n = 3;
 	//n = n*resizeRatio;
@@ -183,11 +181,12 @@ std::vector<Circle*> Application::findCircles(cv::Mat src, HSV color) {
 	 }
 
 	 std::vector<int> notInclude;
+	 int maxPixel = 8;
 
 	 for (int j = 0; j < src.size(); j++) {
 		 if (std::find(notInclude.begin(), notInclude.end(), j) == notInclude.end()) {
 			 for (int k = 0; k < src.size(); k++) {
-				 if (d[j][k] > 0 && d[j][k] < 8*(1/resizeRatio)) {
+				 if (d[j][k] > 0 && d[j][k] < maxPixel*(1 / resizeRatio)) {
 					 notInclude.push_back(k);
 				 }
 			 }
@@ -373,6 +372,7 @@ int Application::start() {
 
 	original = readImage();
 	resized = resize(original);
+	cv::cvtColor(resized, resized, cv::COLOR_BGR2HSV);
 
 	cv::Size size = resized.size();
 	cv::Point center = cv::Point(original.size().width / 2, original.size().height / 2);
