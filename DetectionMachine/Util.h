@@ -1,5 +1,5 @@
-#ifndef APPLICATION_H
-#define APPLICATION_H
+#ifndef UTIL_H
+#define UTIL_H
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -19,41 +19,26 @@
 
 #define MAX_COLOR	10
 #define MAX_OBJECT  20
-#define CAM			1	
 
-class Application {
+class Util {
 
 private:
-	bool TRACKING = false;
-	bool SHOW_PROCESSED = true;
-	bool INCLUDE_TEXT = true;
-	bool INCLUDE_AIM = false;
-	bool INCLUDE_DISTANCE = true;
+	static bool TRACKING;
+	static bool SHOW_PROCESSED;
+	static bool INCLUDE_TEXT;
+	static bool INCLUDE_AIM;
+	static bool INCLUDE_DISTANCE;
 
-	cv::VideoCapture cap = cv::VideoCapture(CAM);
-	FPS framerate;
-	Arduino arduino;
+	static int CAM;
+	static cv::VideoCapture cap;
 
-	time_t _start;
-	int time;
+	const static int fileSize = 20;
+	static char imageFile[fileSize];
 
-	int source;
-	char imageFile[20];
-
-	HSV colors[MAX_COLOR];
-	std::vector<cv::Point> cropRef;
-	int colorCount;
-
-	std::vector<Object*> objects;		
-
-	int index;
-	static const float Application::resizeRatio;
+	static const float resizeRatio;
 
 public:
-	bool init();
-	int start();
-	void calibrate();
-	cv::Mat readImage();
+	static cv::Mat readImage();
 	static cv::Mat threshold(cv::Mat src, HSV color);
 	static cv::Mat preprocessing(cv::Mat src, HSV color);
 	static std::vector<Circle*> findCircles(cv::Mat src, HSV color);
@@ -65,7 +50,8 @@ public:
 	static float distance(cv::Point p0, cv::Point p1);
 	static std::vector<cv::Point> removeNear(std::vector<cv::Point> src);
 	static cv::Mat resize(cv::Mat src);
-	static void mouseCapture(int event, int x, int y, int flags, void* userdata);
+	static void setCam(int value);
+	static void setImage(char value[fileSize]);
 
 };
 

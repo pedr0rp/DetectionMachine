@@ -1,10 +1,10 @@
-#include "Application.h"
+#include "CASE01.h"
 
 
 int main(int argc, char** argv) {
 
 	cv::useOptimized();
-	Application app;
+	CASE01 app;
 	app.start();
 
 	return 0;
