@@ -98,11 +98,13 @@ std::vector<Circle*> Util::findCircles(cv::Mat src, HSV color) {
 		 }
 	 }
 
-	 for (int j = 0; j < src.size(); j++) {
-		  for (int k = 0; k < src.size(); k++) {
-			  printf("%03d\t",d[j][k]);			 
+	 if (false) {
+		 for (int j = 0; j < src.size(); j++) {
+			 for (int k = 0; k < src.size(); k++) {
+				 printf("%03d\t", d[j][k]);
+			 }
+			 printf("\n");
 		 }
-		  printf("\n");
 	 }
 
 	 std::vector<cv::Point> v;
@@ -175,23 +177,26 @@ std::vector<Poly*> Util::findPoly(cv::Mat src, HSV color) {
 			}						
 		}	
 
-		if (v.size() > 4) {
-			Poly* object = new Poly;
-			object->setColor(color.getName());
-			int x, y;
-			x = y = 0;
-			for (int i = 0; i < v.size(); i++) {
-				v[i].x = v[i].x*(1 / resizeRatio);
-				v[i].y = v[i].y*(1 / resizeRatio);
-				x += v[i].x;
-				y += v[i].y;
-			}
-			object->setV(v);
-			object->setPosition(cv::Point(cvRound(x / v.size()), cvRound(y / v.size())));
-			object->setShape(Shape::OTHER);
+		if (false) {
+			if (v.size() > 4) {
+				Poly* object = new Poly;
+				object->setColor(color.getName());
+				int x, y;
+				x = y = 0;
+				for (int i = 0; i < v.size(); i++) {
+					v[i].x = v[i].x*(1 / resizeRatio);
+					v[i].y = v[i].y*(1 / resizeRatio);
+					x += v[i].x;
+					y += v[i].y;
+				}
+				object->setV(v);
+				object->setPosition(cv::Point(cvRound(x / v.size()), cvRound(y / v.size())));
+				object->setShape(Shape::OTHER);
 
-			objects.push_back(object);
+				objects.push_back(object);
+			}
 		}
+		
 	}
 
 	return objects;

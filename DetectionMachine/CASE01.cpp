@@ -207,8 +207,21 @@ int CASE01::start() {
 			objects.insert(objects.end(), circles.begin(), circles.end());
 
 			std::vector<Poly*> polys = t_poly[i].get();
+			for (int j = 0; j < circles.size(); j++) {
+				for (int k = 0; k < polys.size(); k++) {
+					if (Util::distance(polys[k]->getPosition(), circles[j]->getPosition()) < 10) {
+						polys.erase(polys.begin() + k);
+
+					}
+				}
+			}
+
 			objects.insert(objects.end(), polys.begin(), polys.end());
 		}
+
+		
+
+		
 
 		if (TRACKING && objects.size()>0) {
 			inside = pow(objects[index]->getPosition().x - center.x, 2) + pow(objects[index]->getPosition().y - center.y, 2) <= pow(radiusAim, 2);

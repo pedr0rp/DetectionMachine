@@ -37,6 +37,7 @@ private:
 
 	static const float resizeRatio;
 
+
 public:
 	static cv::Mat readImage();
 	static cv::Mat threshold(cv::Mat src, HSV color);

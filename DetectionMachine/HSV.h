@@ -17,7 +17,7 @@ private:
 	std::string name;
 
 	int lowH = 0;
-	int highH = 179;
+	int highH = 255;
 	int lowS = 0;
 	int highS = 255;
 	int lowV = 0;

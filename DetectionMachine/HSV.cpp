@@ -9,8 +9,8 @@ void HSV::showControl() {
 
 	cv::namedWindow(getWindowName(), cv::WINDOW_NORMAL);
 
-	cv::createTrackbar("LOW_H", getWindowName(), &lowH, 179); 
-	cv::createTrackbar("HIGH_H", getWindowName(), &highH, 179);
+	cv::createTrackbar("LOW_H", getWindowName(), &lowH, 255); 
+	cv::createTrackbar("HIGH_H", getWindowName(), &highH, 255);
 
 	cv::createTrackbar("LOW_S", getWindowName(), &lowS, 255); 
 	cv::createTrackbar("HIGH_S", getWindowName(), &highS, 255);
