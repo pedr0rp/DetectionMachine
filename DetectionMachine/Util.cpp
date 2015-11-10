@@ -71,50 +71,20 @@ std::vector<Circle*> Util::findCircles(cv::Mat src, HSV color) {
 }
 
  std::vector<cv::Point> Util::removeNear(std::vector<cv::Point> src) {
-	 typedef std::vector<std::vector<int> > Matrix;
-	 typedef std::vector<int> Row;
-
-	 const int N = src.size();
-	 Matrix d;
-
-	 for (int j = 0; j < N; ++j)	{
-		 Row row(N);
-		 for (int k = 0; k < N; ++k)	{
-			 row[k] = distance(src[j], src[k]);
-		 }
-		 d.push_back(row); 
-	 }
-
-	 std::vector<int> notInclude;
+	 
 	 int maxPixel = 6;
 
 	 for (int j = 0; j < src.size(); j++) {
-		 if (std::find(notInclude.begin(), notInclude.end(), j) == notInclude.end()) {
-			 for (int k = 0; k < src.size(); k++) {
-				 if (d[j][k] > 0 && d[j][k] < maxPixel*(1 / resizeRatio)) {
-					 notInclude.push_back(k);
-				 }
-			 }
-		 }
-	 }
+		for (int k = 0; k < src.size(); k++) {
+			if (distance(src[j], src[k]) > 0 && distance(src[j], src[k]) < maxPixel*(1 / resizeRatio)) {
+				  src[j].x = (src[j].x + src[k].x) / 2;
+				  src[j].y = (src[j].y + src[k].y) / 2;
+				  src.erase(src.begin() + k);
+			}
+		}
+	}
 
-	 if (false) {
-		 for (int j = 0; j < src.size(); j++) {
-			 for (int k = 0; k < src.size(); k++) {
-				 printf("%03d\t", d[j][k]);
-			 }
-			 printf("\n");
-		 }
-	 }
-
-	 std::vector<cv::Point> v;
-	 for (int j = 0; j < src.size(); j++) {
-		 if (std::find(notInclude.begin(), notInclude.end(), j) == notInclude.end()) {
-			 v.push_back(src[j]);
-		 }
-	 }
-
-	 return v;
+	return src;
  }
 
 std::vector<Poly*> Util::findPoly(cv::Mat src, HSV color) {
