@@ -1,5 +1,5 @@
-#ifndef CASE01_H
-#define CASE01_H
+#ifndef CASE02_H
+#define CASE02_H
 
 #include "Util.h";
 
@@ -7,20 +7,14 @@
 #define MAX_OBJECT  20
 #define CAM			1	
 
-enum DIRECTION { UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3 };
-
-class CASE01 {
+class CASE02 {
 
 
 private:
-	bool TRACKING = false;
-	bool SHOW_PROCESSED = true;
-	bool INCLUDE_TEXT = true;
-	bool INCLUDE_AIM = false;
-	bool INCLUDE_DISTANCE = true;
-	
+	bool SHOW_PROCESSED = false;
+	bool INCLUDE_TEXT = false;
+
 	FPS framerate;
-	Arduino arduino;
 
 	time_t _start;
 	int time;
@@ -28,10 +22,12 @@ private:
 	int source;
 	char imageFile[20];
 
+	int keyColor;
 	HSV colors[MAX_COLOR];
 	int colorCount;
 
 	std::vector<Object*> objects;
+	std::vector<Object*> spaces;
 
 	int index;
 
@@ -40,7 +36,6 @@ public:
 	int start();
 	void calibrate();
 	static void mouseCapture(int event, int x, int y, int flags, void* userdata);
-	void moveCam(DIRECTION value);
 };
 
 

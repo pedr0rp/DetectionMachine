@@ -52,6 +52,7 @@ public:
 	static std::vector<cv::Point> removeNear(std::vector<cv::Point> src);
 	static cv::Mat resize(cv::Mat src);
 	static void setCam(int value);
+	static bool camIsOpened();
 	static void setImage(char value[fileSize]);
 
 };

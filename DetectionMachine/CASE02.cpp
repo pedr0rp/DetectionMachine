@@ -1,8 +1,8 @@
-#include "CASE01.h"
+#include "CASE02.h"
 
 
-void CASE01::mouseCapture(int event, int x, int y, int flags, void* param) {
-	CASE01* ptr = (CASE01*)param;
+void CASE02::mouseCapture(int event, int x, int y, int flags, void* param) {
+	CASE02* ptr = (CASE02*)param;
 	if (event == cv::EVENT_LBUTTONDOWN) {
 		float min;
 		for (int i = 0; i < ptr->objects.size(); i++) {
@@ -20,20 +20,9 @@ void CASE01::mouseCapture(int event, int x, int y, int flags, void* param) {
 	}
 }
 
-bool CASE01::init() {
+bool CASE02::init() {
 
 	bool ready = true;
-
-	printf("Arduino");
-	if (arduino.isConnected()) {
-		printf(" connected");
-	}
-	else {
-		printf(" disconnected");
-		ready = false;
-	}
-
-	printf("\n\n");
 
 	printf("Time: ");
 	scanf("%d", &time);
@@ -70,7 +59,7 @@ bool CASE01::init() {
 	return ready;
 }
 
-void CASE01::calibrate() {
+void CASE02::calibrate() {
 
 	int temp;
 	printf("\nHow many colors? ");
@@ -126,29 +115,18 @@ void CASE01::calibrate() {
 					colors[i].save();
 					next = true;
 					break;
-				case 98:
-					arduino.down(); 
-					printf("down\n");
-					break;
-				case 102:
-					arduino.right();
-					printf("right\n");
-					break;
-				case 100:
-					arduino.left();
-					printf("left\n");
-					break;
-				case 104:
-					arduino.up();
-					printf("up\n");
-					break;
 				}
 			}
 		}
 	}
+
+	printf("Key color: ");
+	scanf("%d", &temp);
+	keyColor = temp - 1;
+
 }
 
-int CASE01::start() {
+int CASE02::start() {
 	init();
 	calibrate();
 
@@ -177,6 +155,7 @@ int CASE01::start() {
 		int textHeight = original.size().height - 10;
 
 		resized = Util::resize(original);
+		spaces.clear();
 		objects.clear();
 
 		std::vector<std::future<cv::Mat>> t_preprocessing(MAX_COLOR);
@@ -217,63 +196,96 @@ int CASE01::start() {
 			t_poly[i].wait();
 		}
 
-		for (int i = 0; i < colorCount; i++) {
+		for (int i = 0; i < colorCount; i++) {			
 			std::vector<Circle*> circles = t_circles[i].get();
-			objects.insert(objects.end(), circles.begin(), circles.end());
+			if (i == keyColor) {
+				spaces.insert(spaces.end(), circles.begin(), circles.end());
+			}
+			else {
+				objects.insert(objects.end(), circles.begin(), circles.end());
+			}
 
 			std::vector<Poly*> polys = t_poly[i].get();
 			for (int j = 0; j < circles.size(); j++) {
 				for (int k = 0; k < polys.size(); k++) {
-					if (Util::distance(polys[k]->getPosition(), circles[j]->getPosition()) < 10) {
+					if (Util::distance(polys[k]->getPosition(), circles[j]->getPosition()) < 30) {
 						polys.erase(polys.begin() + k);
-
 					}
 				}
 			}
 
-			objects.insert(objects.end(), polys.begin(), polys.end());
-		}
-
-		
-
-		
-
-		if (TRACKING && objects.size()>0) {
-			inside = pow(objects[index]->getPosition().x - center.x, 2) + pow(objects[index]->getPosition().y - center.y, 2) <= pow(radiusAim, 2);
-			if (!inside) {
-				int x, y;
-
-				if (objects[index]->getPosition().y > center.y + radiusAim) { arduino.down(); }
-				if (objects[index]->getPosition().y < center.y - radiusAim) { arduino.up(); }
-				if (objects[index]->getPosition().x > center.x + radiusAim) { arduino.left(); }
-				if (objects[index]->getPosition().x < center.x - radiusAim) { arduino.right(); }
+			if (i == keyColor) {
+				spaces.insert(spaces.end(), polys.begin(), polys.end());
 			}
-			line(original, objects[index]->getPosition(), center, cv::Scalar(0, 0, 255), 2, 8);
+			else {
+				objects.insert(objects.end(), polys.begin(), polys.end());
+			}
+
+			
+		}		
+
+		for (int i = 0; i < spaces.size(); i++) {
+			for (int j = 0; j < objects.size(); j++) {
+				if (spaces[i]->getShape() == objects[j]->getShape()) {
+					if (spaces[i]->getShape() == Shape::CIRCLE) {
+						Circle* space = dynamic_cast<Circle*>(spaces[i]);
+						Circle* object = dynamic_cast<Circle*>(objects[i]);
+
+						if (space->getRadius()*1.1 > object->getRadius() && space->getRadius()*0.9 < object->getRadius()) {
+							line(original, space->getPosition(), object->getPosition(), cv::Scalar(255, 0, 255), 2, 8);
+						}
+					}
+					else {
+						Poly* space = dynamic_cast<Poly*>(spaces[i]);
+						Poly* object = dynamic_cast<Poly*>(objects[j]);
+
+						std::vector<int> ts;
+						std::vector<int> to;
+						for (int k = 0; k < space->getV().size(); k++) {
+
+							ts.push_back(Util::distance(space->getV()[k], space->getV()[(k + 1) % space->getV().size()]));
+							to.push_back(Util::distance(object->getV()[k], object->getV()[(k + 1) % object->getV().size()]));							
+						}
+
+						sort(to.begin(), to.end());
+						sort(ts.begin(), ts.end());
+
+						bool flag = true;
+						int k = 0;
+						while (flag && k < ts.size()) {
+							flag = ts[k] * 1.2 > to[k] && ts[k] * 0.8 < to[k];
+							k++;
+						}
+
+						if (flag) {
+							line(original, space->getPosition(), object->getPosition(), cv::Scalar(255, 0, 255), 2, 8);
+						}
+
+
+					}
+				}
+				
+			}
 		}
 
 		for (int i = 0; i < objects.size(); i++) {
-			Util::drawObject(original, objects[i]);
-
-			std::string temp = "";
-			if (i == index) { temp += " > "; }
-			temp += shapeString[objects[i]->getShape()];
-			temp += " - ";
-			temp += objects[i]->getColor();
-			temp += " - ";
-			temp += "(" + std::to_string(objects[i]->getPosition().x) + "," + std::to_string(objects[i]->getPosition().y) + ")";
-
-			putText(original, temp, cv::Point(10, textHeight), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(0, 0, 0), 1, CV_AA);
-			textHeight = textHeight - 12;
+			//Util::drawObject(original, objects[i]);
 		}
+
+		std::string temp = "";
+		temp += "Spaces: ";
+		temp += std::to_string(spaces.size());
+		temp += " Objects: ";
+		temp += std::to_string(objects.size());
+
+		putText(original, temp, cv::Point(10, textHeight), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(0, 0, 0), 1, CV_AA);
+		
 
 		putText(original, framerate.end(), cv::Point(original.size().width - 70, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(255, 255, 255), 1, CV_AA);
-		if (INCLUDE_AIM) {
-			circle(original, center, radiusAim, cv::Scalar(0, 0, 255), 1, 8, 0);
-		}
 
 		imshow("Source", original);
 		cv::setMouseCallback("Source", mouseCapture, (void *)this);
-		
+
 		int qtd = objects.size();
 
 		switch (cv::waitKey(1)) {
@@ -281,18 +293,6 @@ int CASE01::start() {
 			cv::destroyAllWindows();
 			for (int i = 0; i < colorCount; i++) { colors[i].save(); }
 			return 0;
-		case 97:
-			moveCam(DIRECTION::LEFT);		
-			break;
-		case 100:
-			moveCam(DIRECTION::RIGHT);
-			break;
-		case 115:
-			moveCam(DIRECTION::DOWN);
-			break;
-		case 119:
-			moveCam(DIRECTION::UP);
-			break;
 		}
 
 		if (time != 0) {
@@ -303,20 +303,3 @@ int CASE01::start() {
 	return 0;
 }
 
-void CASE01::moveCam(DIRECTION value) {
-	if (value == DIRECTION::LEFT) {
-		arduino.left(); 
-	}
-
-	if (value == DIRECTION::RIGHT) {
-		arduino.right(); 
-	}
-
-	if (value == DIRECTION::DOWN) {
-		arduino.down(); 
-	}
-
-	if (value == DIRECTION::UP) {
-		arduino.up(); 
-	}	
-}

@@ -45,7 +45,10 @@ cv::Mat Util::preprocessing(cv::Mat src, HSV color) {
 
 std::vector<Circle*> Util::findCircles(cv::Mat src, HSV color) {
 	std::vector<cv::Vec3f> circles;
-	cv::HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 90, 60, 10, 0);
+	//CASE01
+	//cv::HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 90, 60, 10, 0);
+	//CASE01
+	cv::HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 90, 65, 10, 0);
 	
 	std::vector<Circle*> objects;
 
@@ -99,7 +102,10 @@ std::vector<Poly*> Util::findPoly(cv::Mat src, HSV color) {
 	for (int i = 0; i < contours.size(); i++) {
 
 		cv::approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true)*0.02, true);
-		if (fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx)) continue;
+		//CASE01 
+		//if (fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx)) continue;
+		//CASE02 
+		if (fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx) || approx.size() > 8) continue;
 
 		std::vector<cv::Point> v = removeNear(approx);
 		//std::vector<cv::Point> v = approx;
@@ -204,12 +210,16 @@ float Util::distance(cv::Point p0, cv::Point p1)  {
 cv::Mat Util::resize(cv::Mat src) {
 	cv::Size newSize = cv::Size(src.cols*resizeRatio, src.rows*resizeRatio);
 	cv::resize(src, src, newSize, 0, 0, cv::INTER_LINEAR);
- 	return src;
+  	return src;
 }
 
 void Util::setCam(int value) {
 	CAM = value;
 	cap = cv::VideoCapture(CAM);
+}
+
+bool Util::camIsOpened() {
+	return cap.isOpened();
 }
 
 void Util::setImage(char value[fileSize]) {
