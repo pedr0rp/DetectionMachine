@@ -149,7 +149,21 @@ int CASE02::start() {
 
 	bool flag = true;
 
+
+	if (false) {
+
+		cv::namedWindow("Hough", cv::WINDOW_NORMAL);
+
+		cv::createTrackbar("A", "Hough", &Util::houghA, 500);
+		cv::createTrackbar("B", "Hough", &Util::houghB, 500);
+	}
+
+
 	while (flag) {
+
+		if (Util::houghA == 0) { Util::houghA = 1; }
+		if (Util::houghB == 0) { Util::houghB = 1; }
+
 		framerate.start();
 		original = Util::readImage();
 		int textHeight = original.size().height - 10;
@@ -224,16 +238,16 @@ int CASE02::start() {
 			
 		}		
 
-		float tolerance = 0.2;
+		float tolerance = 0.25;
 
-		/*for (int i = 0; i < spaces.size(); i++) {
+		for (int i = 0; i < spaces.size(); i++) {
 			for (int j = 0; j < objects.size(); j++) {
 				if (spaces[i]->getShape() == objects[j]->getShape()) {
 					if (spaces[i]->getShape() == Shape::CIRCLE) {
 						Circle* space = dynamic_cast<Circle*>(spaces[i]);
-						Circle* object = dynamic_cast<Circle*>(objects[i]);
+						Circle* object = dynamic_cast<Circle*>(objects[j]);
 
-						if (space->getRadius()*(1-tolerance)> object->getRadius() && space->getRadius()* (1 - tolerance)< object->getRadius()) {
+						if (space->getRadius()*(1+tolerance)>= object->getRadius() && space->getRadius()* (1 - tolerance)<= object->getRadius()) {
 							line(original, space->getPosition(), object->getPosition(), cv::Scalar(255, 0, 255), 2, 8);
 						}
 					}
@@ -254,7 +268,7 @@ int CASE02::start() {
 						bool flag = true;
 						int k = 0;
 						while (flag && k < ts.size()) {
-							flag = ts[k] *(1+tolerance) > to[k] && ts[k]*(1-tolerance) < to[k];
+							flag = ts[k] *(1+tolerance) >= to[k] && ts[k]*(1-tolerance) <= to[k];
 							k++;
 						}
 
@@ -266,10 +280,10 @@ int CASE02::start() {
 				}
 				
 			}
-		}*/
+		}
 
 		for (int i = 0; i < objects.size(); i++) {
-			Util::drawObject(original, objects[i]);
+			//Util::drawObject(original, objects[i]);
 		}
 
 		std::string temp = "";

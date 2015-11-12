@@ -39,6 +39,8 @@ private:
 
 
 public:
+	static int houghA;
+	static int houghB;
 	static cv::Mat readImage();
 	static cv::Mat threshold(cv::Mat src, HSV color);
 	static cv::Mat preprocessing(cv::Mat src, HSV color);

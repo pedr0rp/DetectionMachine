@@ -1,6 +1,9 @@
 #include "Util.h"
 
-const float Util::resizeRatio = 0.5;
+const float Util::resizeRatio = 0.55;
+
+int Util::houghA = 90;
+int Util::houghB = 58;
 
 cv::VideoCapture Util::cap;
 char Util::imageFile[20];
@@ -46,9 +49,9 @@ cv::Mat Util::preprocessing(cv::Mat src, HSV color) {
 std::vector<Circle*> Util::findCircles(cv::Mat src, HSV color) {
 	std::vector<cv::Vec3f> circles;
 	//CASE01
-	//cv::HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 90, 60, 10, 0);
+	//cv::HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 90, 60, 10, 200);
 	//CASE01
-	cv::HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, 90, 65, 10, 0);
+	cv::HoughCircles(src, circles, CV_HOUGH_GRADIENT, 2, src.rows / 8, houghA, houghB, 10, 50);
 	
 	std::vector<Circle*> objects;
 
@@ -75,7 +78,7 @@ std::vector<Circle*> Util::findCircles(cv::Mat src, HSV color) {
 
  std::vector<cv::Point> Util::removeNear(std::vector<cv::Point> src) {
 	 
-	 int maxPixel = 6;
+	 int maxPixel = 9;
 
 	 for (int j = 0; j < src.size(); j++) {
 		for (int k = j; k < src.size(); k++) {
@@ -98,17 +101,13 @@ std::vector<Poly*> Util::findPoly(cv::Mat src, HSV color) {
 	cv::findContours(src, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 	
 	std::vector<cv::Point> approx;
-	
 	for (int i = 0; i < contours.size(); i++) {
 
 		cv::approxPolyDP(cv::Mat(contours[i]), approx, cv::arcLength(cv::Mat(contours[i]), true)*0.02, true);
-		//CASE01 
-		//if (fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx)) continue;
-		//CASE02 
-		if (fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx) || approx.size() > 8) continue;
+
+		if (fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx) || approx.size() >= 8) continue;
 
 		std::vector<cv::Point> v = removeNear(approx);
-		//std::vector<cv::Point> v = approx;
 
 		if (v.size() == 3)	{
 			Poly* object = new Poly;
