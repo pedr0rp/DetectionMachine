@@ -1,5 +1,5 @@
-#ifndef CASE02_H
-#define CASE02_H
+#ifndef CASE03_H
+#define CASE03_H
 
 #include "Util.h";
 
@@ -7,7 +7,7 @@
 #define MAX_OBJECT  20
 #define CAM			1	
 
-class CASE02 {
+class CASE03 {
 
 
 private:
@@ -27,7 +27,10 @@ private:
 	int colorCount;
 
 	std::vector<Object*> objects;
-	std::vector<Object*> spaces;
+	float size;
+	float ratio;
+
+	std::vector<cv::Point> ruler;
 
 public:
 	bool init();

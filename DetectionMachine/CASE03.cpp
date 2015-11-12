@@ -1,12 +1,15 @@
-#include "CASE02.h"
+#include "CASE03.h"
 
 
-void CASE02::mouseCapture(int event, int x, int y, int flags, void* param) {
-	CASE02* ptr = (CASE02*)param;
-	
+void CASE03::mouseCapture(int event, int x, int y, int flags, void* param) {
+	if (event == CV_EVENT_LBUTTONDOWN)
+	{
+		CASE03* ptr = (CASE03*)param;
+		ptr->ruler.push_back(cv::Point(x, y));
+	}
 }
 
-bool CASE02::init() {
+bool CASE03::init() {
 
 	bool ready = true;
 
@@ -45,7 +48,7 @@ bool CASE02::init() {
 	return ready;
 }
 
-void CASE02::calibrate() {
+void CASE03::calibrate() {
 
 	int temp;
 	printf("\nHow many colors? ");
@@ -100,19 +103,45 @@ void CASE02::calibrate() {
 					cv::destroyAllWindows();
 					colors[i].save();
 					next = true;
-					break;
+					break;				
 				}
 			}
 		}
 	}
 
-	printf("Key color: ");
-	scanf("%d", &temp);
-	keyColor = temp - 1;
+	printf("\tCalibrating ruler...\n");
+	cv::namedWindow("Ruler", cv::WINDOW_AUTOSIZE);
+	cv::setMouseCallback("Ruler", mouseCapture, (void *)this);
+	bool flag = false;
+	int click = 0;
+	while (click < 2) {
+
+		if (!flag) {
+			printf("\tClick #%d\n", (click + 1));
+			flag = true;
+		}
+		
+		if (ruler.size() > click)
+		{
+			click++;
+			flag = false;
+		}
+
+		cv::Mat src = Util::readImage();
+		imshow("Ruler", src);
+		cv::waitKey(1);
+	}
+
+	printf("Ruler size: ");
+	scanf("%f", &size);
+	ratio = size / Util::distance(ruler[0], ruler[1]);
+	cv::destroyAllWindows();
+	
+	printf("Ratio %6.4lf\n", ratio);
 
 }
 
-int CASE02::start() {
+int CASE03::start() {
 	init();
 	calibrate();
 
@@ -135,27 +164,12 @@ int CASE02::start() {
 
 	bool flag = true;
 
-
-	if (false) {
-
-		cv::namedWindow("Hough", cv::WINDOW_NORMAL);
-
-		cv::createTrackbar("A", "Hough", &Util::houghA, 500);
-		cv::createTrackbar("B", "Hough", &Util::houghB, 500);
-	}
-
-
 	while (flag) {
-
-		if (Util::houghA == 0) { Util::houghA = 1; }
-		if (Util::houghB == 0) { Util::houghB = 1; }
-
 		framerate.start();
 		original = Util::readImage();
 		int textHeight = original.size().height - 10;
 
 		resized = Util::resize(original);
-		spaces.clear();
 		objects.clear();
 
 		std::vector<std::future<cv::Mat>> t_preprocessing(MAX_COLOR);
@@ -196,94 +210,64 @@ int CASE02::start() {
 			t_poly[i].wait();
 		}
 
-		for (int i = 0; i < colorCount; i++) {			
+		for (int i = 0; i < colorCount; i++) {
 			std::vector<Circle*> circles = t_circles[i].get();
-			if (i == keyColor) {
-				spaces.insert(spaces.end(), circles.begin(), circles.end());
-			}
-			else {
-				objects.insert(objects.end(), circles.begin(), circles.end());
-			}
+			objects.insert(objects.end(), circles.begin(), circles.end());
 
 			std::vector<Poly*> polys = t_poly[i].get();
 			for (int j = 0; j < circles.size(); j++) {
 				for (int k = 0; k < polys.size(); k++) {
-					if (Util::distance(polys[k]->getPosition(), circles[j]->getPosition()) < 30) {
+					if (Util::distance(polys[k]->getPosition(), circles[j]->getPosition()) < 10) {
 						polys.erase(polys.begin() + k);
+
 					}
 				}
 			}
 
-			if (i == keyColor) {
-				spaces.insert(spaces.end(), polys.begin(), polys.end());
+			objects.insert(objects.end(), polys.begin(), polys.end());
+		}	
+
+		for (int i = 0; i < objects.size(); i++) {
+
+			Util::drawObject(original, objects[i]);
+
+			if (objects[i]->getShape() == Shape::CIRCLE) {
+				Circle* circle = dynamic_cast<Circle*>(objects[i]);
+				putText(original, std::to_string(circle->getRadius()*ratio), circle->getPosition(), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(255, 255, 255), 1, CV_AA);
 			}
 			else {
-				objects.insert(objects.end(), polys.begin(), polys.end());
+				Poly* poly = dynamic_cast<Poly*>(objects[i]);
+
+				for (int k = 0; k < poly->getV().size(); k++) {
+
+					double size = Util::distance(poly->getV()[k], poly->getV()[(k + 1) % poly->getV().size()])*ratio;
+					std::stringstream stream;
+					stream << std::fixed << std::setprecision(2) <<size;					
+
+					putText(original, 
+						stream.str(),
+						cv::Point(
+							(poly->getV()[k].x + poly->getV()[(k + 1) % poly->getV().size()].x)/2,
+							(poly->getV()[k].y + poly->getV()[(k + 1) % poly->getV().size()].y)/2
+							),
+						cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(255, 255, 255), 1, CV_AA);
+				}
 			}
 
 			
-		}		
 
-		float tolerance = 0.25;
+			std::string temp = "";
+			temp += shapeString[objects[i]->getShape()];
+			temp += " - ";
+			temp += objects[i]->getColor();
+			temp += " - ";
+			temp += "(" + std::to_string(objects[i]->getPosition().x) + "," + std::to_string(objects[i]->getPosition().y) + ")";
 
-		for (int i = 0; i < spaces.size(); i++) {
-			for (int j = 0; j < objects.size(); j++) {
-				if (spaces[i]->getShape() == objects[j]->getShape()) {
-					if (spaces[i]->getShape() == Shape::CIRCLE) {
-						Circle* space = dynamic_cast<Circle*>(spaces[i]);
-						Circle* object = dynamic_cast<Circle*>(objects[j]);
-
-						if (space->getRadius()*(1+tolerance)>= object->getRadius() && space->getRadius()* (1 - tolerance)<= object->getRadius()) {
-							line(original, space->getPosition(), object->getPosition(), cv::Scalar(255, 0, 255), 2, 8);
-						}
-					}
-					else {
-						Poly* space = dynamic_cast<Poly*>(spaces[i]);
-						Poly* object = dynamic_cast<Poly*>(objects[j]);
-
-						std::vector<int> ts;
-						std::vector<int> to;
-						for (int k = 0; k < space->getV().size(); k++) {
-							ts.push_back(Util::distance(space->getV()[k], space->getV()[(k + 1) % space->getV().size()]));
-							to.push_back(Util::distance(object->getV()[k], object->getV()[(k + 1) % object->getV().size()]));							
-						}
-
-						sort(to.begin(), to.end());
-						sort(ts.begin(), ts.end());
-
-						bool flag = true;
-						int k = 0;
-						while (flag && k < ts.size()) {
-							flag = ts[k] *(1+tolerance) >= to[k] && ts[k]*(1-tolerance) <= to[k];
-							k++;
-						}
-
-						if (flag) {
-							line(original, space->getPosition(), object->getPosition(), cv::Scalar(255, 0, 255), 2, 8);							
-						}
-
-					}
-				}
-				
-			}
+			putText(original, temp, cv::Point(10, textHeight), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(0, 0, 0), 1, CV_AA);
+			textHeight = textHeight - 12;
 		}
 
-		for (int i = 0; i < objects.size(); i++) {
-			//Util::drawObject(original, objects[i]);
-		}
-
-		std::string temp = "";
-		temp += "Spaces: ";
-		temp += std::to_string(spaces.size());
-		temp += " Objects: ";
-		temp += std::to_string(objects.size());
-
-		//putText(original, temp, cv::Point(10, textHeight), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(255, 255, 255), 1, CV_AA);
-		
-		putText(original, framerate.end(), cv::Point(original.size().width - 70, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(255, 255, 255), 1, CV_AA);
-
-		imshow("Source", original);
-		cv::setMouseCallback("Source", mouseCapture, (void *)this);
+		imshow("Source", original);		
 
 		int qtd = objects.size();
 
@@ -301,4 +285,3 @@ int CASE02::start() {
 
 	return 0;
 }
-
