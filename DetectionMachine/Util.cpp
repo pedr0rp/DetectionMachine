@@ -78,7 +78,7 @@ std::vector<Circle*> Util::findCircles(cv::Mat src, HSV color) {
 	 int maxPixel = 6;
 
 	 for (int j = 0; j < src.size(); j++) {
-		for (int k = 0; k < src.size(); k++) {
+		for (int k = j; k < src.size(); k++) {
 			if (distance(src[j], src[k]) > 0 && distance(src[j], src[k]) < maxPixel*(1 / resizeRatio)) {
 				  src[j].x = (src[j].x + src[k].x) / 2;
 				  src[j].y = (src[j].y + src[k].y) / 2;

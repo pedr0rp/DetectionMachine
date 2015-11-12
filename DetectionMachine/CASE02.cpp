@@ -224,14 +224,16 @@ int CASE02::start() {
 			
 		}		
 
-		for (int i = 0; i < spaces.size(); i++) {
+		float tolerance = 0.2;
+
+		/*for (int i = 0; i < spaces.size(); i++) {
 			for (int j = 0; j < objects.size(); j++) {
 				if (spaces[i]->getShape() == objects[j]->getShape()) {
 					if (spaces[i]->getShape() == Shape::CIRCLE) {
 						Circle* space = dynamic_cast<Circle*>(spaces[i]);
 						Circle* object = dynamic_cast<Circle*>(objects[i]);
 
-						if (space->getRadius()*1.1 > object->getRadius() && space->getRadius()*0.9 < object->getRadius()) {
+						if (space->getRadius()*(1-tolerance)> object->getRadius() && space->getRadius()* (1 - tolerance)< object->getRadius()) {
 							line(original, space->getPosition(), object->getPosition(), cv::Scalar(255, 0, 255), 2, 8);
 						}
 					}
@@ -242,7 +244,6 @@ int CASE02::start() {
 						std::vector<int> ts;
 						std::vector<int> to;
 						for (int k = 0; k < space->getV().size(); k++) {
-
 							ts.push_back(Util::distance(space->getV()[k], space->getV()[(k + 1) % space->getV().size()]));
 							to.push_back(Util::distance(object->getV()[k], object->getV()[(k + 1) % object->getV().size()]));							
 						}
@@ -253,23 +254,22 @@ int CASE02::start() {
 						bool flag = true;
 						int k = 0;
 						while (flag && k < ts.size()) {
-							flag = ts[k] * 1.2 > to[k] && ts[k] * 0.8 < to[k];
+							flag = ts[k] *(1+tolerance) > to[k] && ts[k]*(1-tolerance) < to[k];
 							k++;
 						}
 
 						if (flag) {
-							line(original, space->getPosition(), object->getPosition(), cv::Scalar(255, 0, 255), 2, 8);
+							line(original, space->getPosition(), object->getPosition(), cv::Scalar(255, 0, 255), 2, 8);							
 						}
-
 
 					}
 				}
 				
 			}
-		}
+		}*/
 
 		for (int i = 0; i < objects.size(); i++) {
-			//Util::drawObject(original, objects[i]);
+			Util::drawObject(original, objects[i]);
 		}
 
 		std::string temp = "";
@@ -278,9 +278,8 @@ int CASE02::start() {
 		temp += " Objects: ";
 		temp += std::to_string(objects.size());
 
-		putText(original, temp, cv::Point(10, textHeight), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(0, 0, 0), 1, CV_AA);
+		//putText(original, temp, cv::Point(10, textHeight), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.6, cv::Scalar(255, 255, 255), 1, CV_AA);
 		
-
 		putText(original, framerate.end(), cv::Point(original.size().width - 70, 20), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, cv::Scalar(255, 255, 255), 1, CV_AA);
 
 		imshow("Source", original);
